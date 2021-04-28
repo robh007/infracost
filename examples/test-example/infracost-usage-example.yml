@@ -1,0 +1,16 @@
+version: 0.1
+resource_usage:
+  aws_rds_cluster.this:
+    storage_gb: 200
+    write_requests_per_sec: 100
+    read_requests_per_sec: 100
+    capacity_unit_hrs: 50            # Monthly custom events published. Each 64 KB chunk of payload is billed as 1 event.
+    backup_snapshot_size_gb: 200       # Monthly third-party and cross-account events published. Each 64 KB chunk of payload is billed as 1 event.
+    average_statements_per_hr: 10000 # Number of statements generated per hour when backtrack is enabled. Only availble for MySQl-compatible Aurora
+    change_records_per_statement: 0.38 # Records changed per statement executed.
+    backtrack_window_hrs: 24 # The duration window for which Aurora will support rewinding the DB cluster to a specific point in time.
+    snapshot_export_size_gb: 200      # Size of snapshot that's exported to s3 in parquet format.
+
+  aws_eks_node_group.example:
+    cpu_credit_hrs: 0
+    virtual_cpu_count: 0

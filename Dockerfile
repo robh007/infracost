@@ -1,8 +1,8 @@
 FROM golang:1.16 as builder
 
 ARG ARCH=linux
-ARG DEFAULT_TERRAFORM_VERSION=0.14.8
-ARG TERRAGRUNT_VERSION=0.28.8
+ARG DEFAULT_TERRAFORM_VERSION=0.14.9
+ARG TERRAGRUNT_VERSION=0.28.22
 
 # Set Environment Variables
 SHELL ["/bin/bash", "-c"]
@@ -10,7 +10,7 @@ ENV HOME /app
 ENV CGO_ENABLED 0
 
 # Install Packages
-RUN apt-get update -q && apt-get -y install zip jq
+RUN apt-get update -q && apt-get -y install unzip
 
 # Install latest of each Terraform version after 0.12 as we don't support versions before that
 RUN AVAILABLE_TERRAFORM_VERSIONS="0.12.30 0.13.6 ${DEFAULT_TERRAFORM_VERSION}" && \
@@ -40,17 +40,27 @@ WORKDIR /app
 COPY . .
 RUN make deps
 RUN NO_DIRTY=true make build
+RUN chmod +x /app/build/infracost
 
 # Application
 FROM alpine:3.13 as app
 # Tools needed for running diffs in CI integrations
-RUN apk --no-cache add ca-certificates openssl openssh-client curl git jq
+RUN apk --no-cache add ca-certificates openssl openssh-client curl git
+
+# The jq package provided by alpine:3.13 (jq 1.6-rc1) is flagged as a 
+# high severity vulnerability, so we install the latest release ourselves
+# Reference: https://nvd.nist.gov/vuln/detail/CVE-2016-4074 (this is present on jq-1.6-rc1 as well)
+RUN \
+    # Install jq-1.6 (final release)
+    curl -s -L -o /tmp/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 && \
+    mv /tmp/jq /usr/local/bin/jq && \
+    chmod +x /usr/local/bin/jq
+
 WORKDIR /root/
 # Scripts are used by CI integrations and other use-cases
 COPY scripts /scripts
 COPY --from=builder /usr/bin/terraform* /usr/bin/
 COPY --from=builder /usr/bin/terragrunt /usr/bin/
 COPY --from=builder /app/build/infracost /usr/bin/
-RUN chmod +x /usr/bin/infracost
 
 ENTRYPOINT [ "infracost" ]
