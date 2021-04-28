@@ -17,8 +17,9 @@ import (
 // These show differently in the plan JSON for Terraform 0.12 and 0.13.
 var infracostProviderNames = []string{"infracost", "registry.terraform.io/infracost/infracost"}
 var defaultProviderRegions = map[string]string{
-	"aws":    "us-east-1",
-	"google": "us-central1",
+	"aws":     "us-east-1",
+	"google":  "us-central1",
+	"azurerm": "eastus",
 }
 
 // ARN attribute mapping for resources that don't have a standard 'arn' attribute
@@ -99,7 +100,18 @@ func (p *Parser) parseJSONResources(parsePrior bool, baseResources []*schema.Res
 	p.stripDataResources(resData)
 
 	for _, d := range resData {
-		if r := p.createResource(d, usage[d.Address]); r != nil {
+		var usageData *schema.UsageData
+
+		if ud := usage[d.Address]; ud != nil {
+			usageData = ud
+		} else if strings.HasSuffix(d.Address, "]") {
+			lastIndexOfOpenBracket := strings.LastIndex(d.Address, "[")
+
+			if arrayUsageData := usage[fmt.Sprintf("%s[*]", d.Address[:lastIndexOfOpenBracket])]; arrayUsageData != nil {
+				usageData = arrayUsageData
+			}
+		}
+		if r := p.createResource(d, usageData); r != nil {
 			resources = append(resources, r)
 		}
 	}

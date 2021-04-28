@@ -29,6 +29,9 @@ var tfProviders = `
 			google = {
 				source  = "hashicorp/google"
 			}
+			azurerm = {
+				source  = "hashicorp/azurerm"
+			}
 		}
 	}
 
@@ -45,6 +48,16 @@ var tfProviders = `
 	provider "google" {
 		credentials = "{\"type\":\"service_account\"}"
 		region = "us-central1"
+	}
+
+	provider "google-beta" {
+		credentials = "{\"type\":\"service_account\"}"
+		region = "us-central1"
+	}
+
+	provider "azurerm" {
+		skip_provider_registration = true
+		features {}
 	}
 `
 

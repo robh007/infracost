@@ -10,9 +10,11 @@ var ResourceRegistry []*schema.RegistryItem = []*schema.RegistryItem{
 	GetComputeImageRegistryItem(),
 	GetComputeSnapshotRegistryItem(),
 	GetComputeInstanceRegistryItem(),
+	GetComputeMachineImageRegistryItem(),
 	GetComputeRouterNATRegistryItem(),
 	GetContainerClusterRegistryItem(),
 	GetContainerNodePoolRegistryItem(),
+	GetContainerRegistryItem(),
 	GetDNSManagedZoneRegistryItem(),
 	GetDNSRecordSetRegistryItem(),
 	GetKMSCryptoKeyRegistryItem(),
@@ -27,6 +29,8 @@ var ResourceRegistry []*schema.RegistryItem = []*schema.RegistryItem{
 	GetMonitoringItem(),
 	GetPubSubSubscriptionRegistryItem(),
 	GetPubSubTopicRegistryItem(),
+	GetRedisInstanceRegistryItem(),
+	GetSQLInstanceRegistryItem(),
 	GetStorageBucketRegistryItem(),
 }
 
@@ -43,6 +47,7 @@ var FreeResources []string = []string{
 	"google_compute_disk_iam_binding",
 	"google_compute_disk_iam_member",
 	"google_compute_disk_iam_policy",
+	"google_compute_disk_resource_policy_attachment",
 	"google_compute_firewall",
 	"google_compute_global_network_endpoint",
 	"google_compute_global_network_endpoint_group",
@@ -137,6 +142,9 @@ var FreeResources []string = []string{
 	"google_service_account_iam_member",
 	"google_service_account_iam_policy",
 	"google_service_account_key",
+	"google_sql_database",
+	"google_sql_ssl_cert",
+	"google_sql_user",
 	"google_storage_bucket_access_control",
 	"google_storage_bucket_acl",
 	"google_storage_bucket_iam_binding",
@@ -178,12 +186,6 @@ var UsageOnlyResources []string = []string{}
 // google_compute_region_disk
 // google_compute_snapshot
 //
-// Cloud VPN (https://cloud.google.com/vpc/network-pricing#vpn-pricing):
-// google_compute_vpn_gateway
-// google_compute_vpn_tunnel
-// google_compute_external_vpn_gateway
-// google_compute_ha_vpn_gateway
-//
 // Load balancers (https://cloud.google.com/vpc/network-pricing#lb):
 // google_compute_forwarding_rule
 // google_compute_global_forwarding_rule
@@ -195,8 +197,6 @@ var UsageOnlyResources []string = []string{}
 // google_compute_region_target_http_proxy
 // google_compute_region_target_https_proxy
 //
-// Cloud NAT (https://cloud.google.com/vpc/network-pricing#nat-pricing):
-// google_compute_router_nat
 //
 // Packet mirroring (https://cloud.google.com/vpc/network-pricing#packet-mirroring):
 // google_compute_packet_mirroring

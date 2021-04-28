@@ -95,6 +95,8 @@ func newLaunchConfiguration(name string, d *schema.ResourceData, u *schema.Usage
 		tenancy = "Dedicated"
 	}
 
+	instanceType := d.Get("instance_type").String()
+
 	subResources := make([]*schema.Resource, 0)
 	subResources = append(subResources, newRootBlockDevice(d.Get("root_block_device.0"), region))
 	subResources = append(subResources, newEbsBlockDevices(d.Get("ebs_block_device"), region)...)
@@ -103,7 +105,7 @@ func newLaunchConfiguration(name string, d *schema.ResourceData, u *schema.Usage
 	if d.Get("spot_price").String() != "" {
 		purchaseOption = "spot"
 	}
-	costComponents := []*schema.CostComponent{computeCostComponent(d, u, purchaseOption, tenancy)}
+	costComponents := []*schema.CostComponent{computeCostComponent(d, u, purchaseOption, instanceType, tenancy, 1)}
 
 	if d.Get("ebs_optimized").Bool() {
 		costComponents = append(costComponents, ebsOptimizedCostComponent(d))
@@ -114,7 +116,7 @@ func newLaunchConfiguration(name string, d *schema.ResourceData, u *schema.Usage
 		costComponents = append(costComponents, detailedMonitoringCostComponent(d))
 	}
 
-	c := cpuCreditsCostComponent(d)
+	c := newCPUCredit(d, u)
 	if c != nil {
 		costComponents = append(costComponents, c)
 	}
@@ -128,6 +130,8 @@ func newLaunchConfiguration(name string, d *schema.ResourceData, u *schema.Usage
 
 func newLaunchTemplate(name string, d *schema.ResourceData, u *schema.UsageData, region string, onDemandCount decimal.Decimal, spotCount decimal.Decimal) *schema.Resource {
 	tenancy := "Shared"
+	var totalCount decimal.Decimal
+
 	if d.Get("placement.0.tenancy").String() == "host" {
 		log.Warnf("Skipping resource %s. Infracost currently does not support host tenancy for AWS Launch Templates", d.Address)
 		return nil
@@ -135,7 +139,9 @@ func newLaunchTemplate(name string, d *schema.ResourceData, u *schema.UsageData,
 		tenancy = "Dedicated"
 	}
 
-	totalCount := onDemandCount.Add(spotCount)
+	totalCount = onDemandCount.Add(spotCount)
+
+	instanceType := d.Get("instance_type").String()
 
 	costComponents := make([]*schema.CostComponent, 0)
 
@@ -154,9 +160,13 @@ func newLaunchTemplate(name string, d *schema.ResourceData, u *schema.UsageData,
 		costComponents = append(costComponents, c)
 	}
 
-	c := cpuCreditsCostComponent(d)
-	if c != nil {
-		costComponents = append(costComponents, c)
+	if d.Get("instance_type").Exists() && d.Get("instance_type").Type != gjson.Null {
+		if isInstanceBurstable(d.Get("instance_type").String(), []string{"t2.", "t3.", "t4."}) {
+			c := newCPUCredit(d, u)
+			if c != nil {
+				costComponents = append(costComponents, c)
+			}
+		}
 	}
 
 	subResources := make([]*schema.Resource, 0)
@@ -178,13 +188,13 @@ func newLaunchTemplate(name string, d *schema.ResourceData, u *schema.UsageData,
 	schema.MultiplyQuantities(r, totalCount)
 
 	if spotCount.GreaterThan(decimal.Zero) {
-		c := computeCostComponent(d, u, "spot", tenancy)
+		c := computeCostComponent(d, u, "spot", instanceType, tenancy, 1)
 		c.HourlyQuantity = decimalPtr(c.HourlyQuantity.Mul(spotCount))
 		r.CostComponents = append([]*schema.CostComponent{c}, r.CostComponents...)
 	}
 
 	if onDemandCount.GreaterThan(decimal.Zero) {
-		c := computeCostComponent(d, u, "on_demand", tenancy)
+		c := computeCostComponent(d, u, "on_demand", instanceType, tenancy, 1)
 		c.HourlyQuantity = decimalPtr(c.HourlyQuantity.Mul(onDemandCount))
 		r.CostComponents = append([]*schema.CostComponent{c}, r.CostComponents...)
 	}
